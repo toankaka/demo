@@ -13,8 +13,7 @@ services:
     base-uri: "http://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=10&exchange=NASDAQ"
 
 cron:
-  athena:
-    start-time: 0 0 9 * * *
+  start-time: 0 0 9 * * *
 
 #management:
 #  security:

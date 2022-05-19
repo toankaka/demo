@@ -1,6 +1,8 @@
-package com.abs.demo.client.nas;
+package com.abs.demo.client.quandl;
 
 import com.abs.demo.client.nas.dto.NasRes;
+import com.abs.demo.client.quandl.dto.Dataset;
+import com.abs.demo.client.quandl.dto.QuandlRes;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,20 +21,20 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Slf4j
 @EnableScheduling
 @RequiredArgsConstructor
-public class NasServiceImpl implements NasService {
+public class QuandlServiceImpl implements QuandlService {
 
   private final RestTemplate restTemplate;
 
   @Override
-  public NasRes getStockList() {
+  public QuandlRes getStockInfo(String symbol) {
     HttpEntity<?> requestEntity = new HttpEntity<>(getHeaders());
-    UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("https://api.nasdaq.com")
-        .path("/api/screener/stocks").queryParam("tableonly", true).queryParam("limit", 6000)
-        .queryParam("exchange", "NASDAQ");
+    String format = String.format("/api/v3/datasets/WIKI/%s.json", symbol);
+    UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("https://www.quandl.com")
+        .path(format);
 
     try {
-      ResponseEntity<NasRes> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, requestEntity,
-          NasRes.class);
+      ResponseEntity<QuandlRes> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, requestEntity,
+          QuandlRes.class);
       return response.getBody();
     } catch (HttpClientErrorException e) {
       System.out.println("Call API " + builder.toUriString() + " FAIL. " + e.getResponseBodyAsString());
@@ -45,5 +47,4 @@ public class NasServiceImpl implements NasService {
     headers.add("User-Agent", "PostmanRuntime/7.28.4");
     return headers;
   }
-
 }
