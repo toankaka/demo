@@ -6,8 +6,11 @@ import com.abs.demo.client.nas.dto.Row;
 import com.abs.demo.client.quandl.QuandlService;
 import com.abs.demo.client.quandl.dto.QuandlRes;
 import com.abs.demo.dto.response.StockInfoDto;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -15,13 +18,17 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -37,6 +44,7 @@ public class ScheduleJob {
   private final QuandlService quandlService;
   private Set<String> lstSymbol;
   private List<StockInfoDto> closePrice;
+  private Map<String, List<StockInfoDto>> listStock;
   public static final String YYYY_MM_DD = "yyyy-MM-dd";
   private static final DecimalFormat df = new DecimalFormat("0.00");
 
@@ -44,6 +52,28 @@ public class ScheduleJob {
   public void getStockList() throws IOException, ClassNotFoundException {
     //job cuoi ngay, lay close price
     getStocks();
+  }
+
+  @PostConstruct
+  public void loadStocks() throws IOException, ClassNotFoundException {
+    listStock = new HashMap<>();
+    log.info("Start load stocks");
+    NasRes nasRes = nasService.getStockList();
+    Set<String> lstSymbol = nasRes.getData().getTable().getRows().stream().map(Row::getSymbol).collect(Collectors.toSet());
+    for (String s : lstSymbol) {
+      String fileName = String.format("%s.dat", s);
+      File f = new File(fileName);
+      if (!f.isFile() || !f.canRead()) {
+        continue;
+      }
+      FileInputStream infile = new FileInputStream(f);
+      ObjectInputStream inobj = new ObjectInputStream(infile);
+      List<StockInfoDto> stockInfoDtos = (List<StockInfoDto>) inobj.readObject();
+      inobj.close();
+      infile.close();
+      listStock.put(s, stockInfoDtos);
+    }
+    log.info("End load stocks");
   }
 
   //  @PostConstruct
@@ -65,6 +95,7 @@ public class ScheduleJob {
   }
 
 
+  @Async
   public void average(QuandlRes stockInfo) throws IOException {
     log.info("Start average");
     //init

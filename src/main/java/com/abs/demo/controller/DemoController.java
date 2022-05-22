@@ -6,6 +6,7 @@ import com.abs.demo.feature.stock.StockUsecase;
 import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -40,10 +41,10 @@ public class DemoController {
     return ResponseEntity.ok(dma200Res);
   }
 
-  @GetMapping("/{symbol}/200dma1000")
-  public ResponseEntity<List<Dma200Res>> get200dma1000(@PathVariable(value = "symbol") List<String> symbol,
+  @GetMapping("/200dma1000")
+  public ResponseEntity<List<Dma200Res>> get200dma1000(@Valid @RequestParam(value = "symbols") @NotEmpty List<@NotBlank String> symbols,
       @Valid @NotBlank(message = "startDate not blank") @RequestParam(value = "startDate") String startDate) {
-    List<Dma200Res> dma200Res = stockUsecase.get200dma1000(symbol, startDate);
+    List<Dma200Res> dma200Res = stockUsecase.get200dma1000(symbols, startDate);
     return ResponseEntity.ok(dma200Res);
   }
 }

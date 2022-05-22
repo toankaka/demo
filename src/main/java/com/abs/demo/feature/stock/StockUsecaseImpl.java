@@ -6,15 +6,16 @@ import com.abs.demo.dto.response.ClosePriceRes.Prices;
 import com.abs.demo.dto.response.Dma200;
 import com.abs.demo.dto.response.Dma200Res;
 import com.abs.demo.dto.response.StockInfoDto;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
+import com.abs.demo.exception.model.BadParamsException;
+import com.abs.demo.exception.model.NotFoundException;
+import com.abs.demo.job.ScheduleJob;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class StockUsecaseImpl implements StockUsecase {
 
+
+  private final ScheduleJob scheduleJob;
   public static final String YYYY_MM_DD = "yyyy-MM-dd";
 
   @Override
@@ -32,15 +35,16 @@ public class StockUsecaseImpl implements StockUsecase {
     Date enDate = stringToDate(endDate, YYYY_MM_DD);
     if (stDate.after(enDate)) {
       log.error("Start Date must be less than End Date");
-      return null;
+      throw new BadParamsException("Start Date must be less than End Date");
     }
 
-    //kiem tra symbol co ton tai khong
-    File f = checkFileExist(symbol);
-
-    //doc file
-    List<StockInfoDto> stockInfoDtos = readFile(f);
-
+    Map<String, List<StockInfoDto>> listStock = scheduleJob.getListStock();
+    if (listStock.get(symbol) == null) {
+      log.info("Symbol {} not found", symbol);
+      String mes = String.format("Symbol %s not found", symbol);
+      throw new NotFoundException(mes);
+    }
+    List<StockInfoDto> stockInfoDtos = listStock.get(symbol);
     int size = stockInfoDtos.size();
     List<DateClose> dateCloses = new ArrayList<>();
     for (int i = size; i > 0; i--) {
@@ -60,12 +64,14 @@ public class StockUsecaseImpl implements StockUsecase {
   @Override
   public Dma200Res get200dma(String symbol, String startDate) {
     Date stDate = stringToDate(startDate, YYYY_MM_DD);
-    //kiem tra symbol co ton tai khong
-    File f = checkFileExist(symbol);
+    Map<String, List<StockInfoDto>> listStock = scheduleJob.getListStock();
+    if (listStock.get(symbol) == null) {
+      log.info("Symbol {} not found", symbol);
+      String mes = String.format("Symbol %s not found", symbol);
+      throw new NotFoundException(mes);
+    }
 
-    //doc file
-    List<StockInfoDto> stockInfoDtos = readFile(f);
-
+    List<StockInfoDto> stockInfoDtos = listStock.get(symbol);
     int size = stockInfoDtos.size();
     for (int i = size; i > 0; i--) {
       StockInfoDto data = stockInfoDtos.get(i - 1);
@@ -78,32 +84,32 @@ public class StockUsecaseImpl implements StockUsecase {
 
   @Override
   public List<Dma200Res> get200dma1000(List<String> symbol, String startDate) {
-    return null;
-  }
-
-  private File checkFileExist(String symbol) {
-    //kiem tra symbol co ton tai khong
-    String fileName = String.format("%s.dat", symbol);
-    File f = new File(fileName);
-    if (!f.isFile() || !f.canRead()) {
-      log.error("File not found");
-      //throw o day
+    Map<String, List<StockInfoDto>> listStock = scheduleJob.getListStock();
+    List<Dma200Res> dma200Res = new ArrayList<>();
+    Date stDate = stringToDate(startDate, YYYY_MM_DD);
+    for (String s : symbol) {
+      if (listStock.get(s) == null || listStock.get(s).size() == 0) {
+        log.info("Symbol {} not found", s);
+        String mes = String.format("Symbol %s not found", s);
+        throw new NotFoundException(mes);
+      }
+      int size = listStock.get(s).size();
+//      boolean foundDate = false;
+      for (int i = 0; i < size; i++) {
+        StockInfoDto data = listStock.get(s).get(i);
+        if (stDate.equals(data.getCloseDate())) {
+          dma200Res.add(Dma200Res.builder().Dma200(Dma200.builder().avg(data.getMa200()).ticker(s).build()).build());
+//          foundDate = true;
+          break;
+        }
+      }
+//      if (!foundDate) {
+//        String mes = String.format("Symbol %s not found date %s", s, startDate);
+//        log.info(mes);
+//        throw new NotFoundException(mes);
+//      }
     }
-    return f;
-  }
-
-  private List<StockInfoDto> readFile(File f) {
-    List<StockInfoDto> stockInfoDtos = null;
-    try {
-      FileInputStream infile = new FileInputStream(f);
-      ObjectInputStream inobj = new ObjectInputStream(infile);
-      stockInfoDtos = (List<StockInfoDto>) inobj.readObject();
-      inobj.close();
-      infile.close();
-    } catch (Exception e) {
-//      throw o day
-    }
-    return stockInfoDtos;
+    return dma200Res;
   }
 
   public static Date stringToDate(String strDate, String format) {
