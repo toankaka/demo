@@ -1,7 +1,17 @@
 spring:
   banner:
     location: classpath:banner.txt
-
+#  datasource:
+#    driver-class-name: oracle.jdbc.OracleDriver
+#    url: jdbc:oracle:thin:@10.7.2.201:1521/tcbssit
+#    username: OPSDBSIT
+#    password: RiaZ5EEva7hJMEfC
+#    hikari:
+#      connectionTimeout: 30000 #30s
+#      idleTimeout: 600000 #10 minutes
+#      maxLifetime: 1800000 #30 minutes
+#      minimumIdle: 10
+#      maximumPoolSize: 50
   jackson:
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: false
@@ -13,7 +23,7 @@ services:
     base-uri: "http://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=10&exchange=NASDAQ"
 
 cron:
-  start-time: 0 0 9 * * *
+  start-time: 0 0 15 * * *
 
 #management:
 #  security:

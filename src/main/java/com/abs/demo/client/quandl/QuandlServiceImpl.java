@@ -30,21 +30,17 @@ public class QuandlServiceImpl implements QuandlService {
     HttpEntity<?> requestEntity = new HttpEntity<>(getHeaders());
     String format = String.format("/api/v3/datasets/WIKI/%s.json", symbol);
     UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("https://www.quandl.com")
-        .path(format);
-
-    try {
-      ResponseEntity<QuandlRes> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, requestEntity,
-          QuandlRes.class);
-      return response.getBody();
-    } catch (HttpClientErrorException e) {
-      System.out.println("Call API " + builder.toUriString() + " FAIL. " + e.getResponseBodyAsString());
-    }
-    return null;
+        .path(format).queryParam("api_key","w6YxaWFPdgHM_s4U2CzZ");
+    ResponseEntity<QuandlRes> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, requestEntity,
+        QuandlRes.class);
+    return response.getBody();
   }
 
   protected static HttpHeaders getHeaders() {
     HttpHeaders headers = new HttpHeaders();
     headers.add("User-Agent", "PostmanRuntime/7.28.4");
+    headers.add("api_key", "w6YxaWFPdgHM_s4U2CzZ");
+    headers.add("x-api_key", "w6YxaWFPdgHM_s4U2CzZ");
     return headers;
   }
 }
