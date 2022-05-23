@@ -75,7 +75,7 @@ public class ScheduleJob {
     log.info("End load stocks");
   }
 
-  public void getStocks() throws IOException {
+  public void getStocks() throws IOException, ClassNotFoundException {
     log.info("Start get stocks");
     NasRes nasRes = nasService.getStockList();
     lstSymbol = nasRes.getData().getTable().getRows().stream().map(Row::getSymbol).collect(Collectors.toSet());
@@ -89,6 +89,7 @@ public class ScheduleJob {
       }
       average(stockInfo);
     }
+    loadStocks();
     log.info("End get stocks");
   }
 
