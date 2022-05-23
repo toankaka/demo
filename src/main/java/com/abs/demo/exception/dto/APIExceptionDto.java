@@ -9,4 +9,5 @@ public class APIExceptionDto {
   private int status;
   private String code;
   private String message;
+
 }

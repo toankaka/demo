@@ -50,7 +50,7 @@ public class ScheduleJob {
 
   @Scheduled(cron = "${cron.start-time}")
   public void getStockList() throws IOException, ClassNotFoundException {
-    //job cuoi ngay, lay close price
+    //job cuoi ngay, lay close price, avg
     getStocks();
   }
 
@@ -58,11 +58,9 @@ public class ScheduleJob {
   public void loadStocks() throws IOException, ClassNotFoundException {
     listStock = new HashMap<>();
     log.info("Start load stocks");
-    NasRes nasRes = nasService.getStockList();
-    Set<String> lstSymbol = nasRes.getData().getTable().getRows().stream().map(Row::getSymbol).collect(Collectors.toSet());
-    for (String s : lstSymbol) {
-      String fileName = String.format("%s.dat", s);
-      File f = new File(fileName);
+    File folder = new File("data");
+    for (File file : folder.listFiles()) {
+      File f = new File(file.getAbsolutePath());
       if (!f.isFile() || !f.canRead()) {
         continue;
       }
@@ -71,13 +69,13 @@ public class ScheduleJob {
       List<StockInfoDto> stockInfoDtos = (List<StockInfoDto>) inobj.readObject();
       inobj.close();
       infile.close();
-      listStock.put(s, stockInfoDtos);
+      String[] strings = file.getName().split("\\.");
+      listStock.put(strings[0], stockInfoDtos);
     }
     log.info("End load stocks");
   }
 
-  //  @PostConstruct
-  public void getStocks() throws IOException, ClassNotFoundException {
+  public void getStocks() throws IOException {
     log.info("Start get stocks");
     NasRes nasRes = nasService.getStockList();
     lstSymbol = nasRes.getData().getTable().getRows().stream().map(Row::getSymbol).collect(Collectors.toSet());
@@ -120,7 +118,7 @@ public class ScheduleJob {
     }
 
     //luu file
-    String tenFile = String.format("%s.dat", symbol);
+    String tenFile = String.format("data/%s.dat", symbol);
     FileOutputStream fos = new FileOutputStream(tenFile);
     ObjectOutputStream outobj = new
         ObjectOutputStream(fos);

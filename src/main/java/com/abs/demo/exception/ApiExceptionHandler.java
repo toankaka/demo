@@ -12,6 +12,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+  private final ApiExceptionResolver apiExceptionResolver;
+
+  public ApiExceptionHandler(ApiExceptionResolver apiExceptionResolver) {
+    this.apiExceptionResolver = apiExceptionResolver;
+  }
+
   /**
    * 500 Internal server error
    */
