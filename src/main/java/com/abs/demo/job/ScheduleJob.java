@@ -6,6 +6,7 @@ import com.abs.demo.client.nas.dto.Row;
 import com.abs.demo.client.quandl.QuandlService;
 import com.abs.demo.client.quandl.dto.QuandlRes;
 import com.abs.demo.dto.response.StockInfoDto;
+import com.abs.demo.feature.StockService;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -42,6 +43,7 @@ public class ScheduleJob {
 
   private final NasService nasService;
   private final QuandlService quandlService;
+  private final StockService stockService;
   private Set<String> lstSymbol;
   private List<StockInfoDto> closePrice;
   private Map<String, List<StockInfoDto>> listStock;
@@ -87,55 +89,10 @@ public class ScheduleJob {
         log.info("Error call stock info symbol: {} with error: {}", s, e.getMessage());
         continue;
       }
-      average(stockInfo);
+      stockService.average(stockInfo);
     }
+    //load lại data
     loadStocks();
     log.info("End get stocks");
-  }
-
-
-  @Async
-  public void average(QuandlRes stockInfo) throws IOException {
-    log.info("Start average");
-    //init
-    int size = stockInfo.getDataset().getData().size();
-    List<StockInfoDto> stockInfoDtos = new ArrayList<>();
-    String symbol = stockInfo.getDataset().getDataset_code();
-
-    for (int i = 0; i < size; i++) {
-      String closeDate = stockInfo.getDataset().getData().get(i).get(0).toString();
-      String closePrice = stockInfo.getDataset().getData().get(i).get(4).toString();
-      OptionalDouble average = OptionalDouble.empty();
-      //khong du 200 ngay thi khong tinh average
-      if (i + 201 < size) {
-        average = stockInfo.getDataset().getData().subList(i, i + 201).stream().mapToDouble(x -> (double) x.get(4)).average();
-      }
-      String avg = "";
-      if (average != null && average.isPresent()) {
-        avg = df.format(average.getAsDouble());
-      }
-      stockInfoDtos.add(StockInfoDto.builder().closeDate(stringToDate(closeDate, YYYY_MM_DD)).ma200(avg)
-          .closePrice(closePrice).build());
-    }
-
-    //luu file
-    String tenFile = String.format("data/%s.dat", symbol);
-    FileOutputStream fos = new FileOutputStream(tenFile);
-    ObjectOutputStream outobj = new
-        ObjectOutputStream(fos);
-    outobj.writeObject(stockInfoDtos);
-    outobj.close();
-    fos.close();
-    log.info("End average {}", symbol);
-  }
-
-  public static Date stringToDate(String strDate, String format) {
-    DateFormat df = new SimpleDateFormat(format);
-    try {
-      return df.parse(strDate);
-    } catch (ParseException e) {
-      e.printStackTrace();
-      return null;
-    }
   }
 }
